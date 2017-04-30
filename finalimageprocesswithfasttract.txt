@@ -1,0 +1,52 @@
+clear mypi
+clear myserialdevice
+clear all
+mypi=raspi('169.254.0.2','pi','raspberry');
+mycam=cameraboard(mypi,'Resolution','160x120');
+for i=1:500,
+    mysnap=snapshot(mycam);
+    if(i>1),
+    prevred=prevmysnap(:,:,1);
+    prevgreen=prevmysnap(:,:,2);
+    prevblue=prevmysnap(:,:,3);    
+    mysnapred=mysnap(:,:,1);
+    mysnapgreen=mysnap(:,:,2);
+    mysnapblue=mysnap(:,:,3);
+    submysnapred=imsubtract(mysnapred,prevred);
+    submysnapgreen=imsubtract(mysnapgreen,prevgreen);
+    submysnapblue=imsubtract(mysnapblue,prevblue);
+    subfig(:,:,1)=submysnapred;
+    subfig(:,:,2)=submysnapgreen;
+    subfig(:,:,3)=submysnapblue;
+    graysubfig=rgb2gray(subfig);
+    intensegraysubfig=imadjust(graysubfig,stretchlim(graysubfig),[0 1]);
+    graycontrolled=graythresh(intensegraysubfig);
+    %convert minimum typical pixel to majority
+    binimg=im2bw(intensegraysubfig,graycontrolled);
+    %converted to gray to bin
+    filtimg=medfilt2(binimg);
+    %median filter
+    filtimg2=medfilt2(filtimg,[5,5]);
+    %large median filter
+    doubleimg=double(filtimg2);
+    doubleimg=edge(doubleimg,'canny');
+    %converts edge to empty edges
+    imgs=doubleimg;
+    [H,W]=size(imgs);
+    bw2=bwperim(imgs,4);
+    %it takes perimeter from binary image n return 1 at objects
+    [r,c]=find(bw2==1);
+    %it takes perimeter 1's and shows its respective position in matrix
+    [tr,tc]= boundary(r,c);
+    x1=tr;
+    y1=tc;
+    xb=tr;
+    yb=tc;
+    xmin=min(xb);
+    ymin=min(yb);
+    xmax=max(xb);
+    ymax=max(yb);
+    imagesc(bw2)
+    end
+   prevmysnap=mysnap;
+end
